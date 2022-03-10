@@ -6,7 +6,7 @@ module Methods
       "####################################"
     ]
   end
-    
+  
   def print_menu(name_menu)
     options = {
       menu_login: "login | create_user | exit",
@@ -86,7 +86,7 @@ module Methods
     phone = valid_phone(phone) unless phone.empty?
     new_user.merge!({ first_name: first_name, last_name: last_name, phone: phone})
   end
-  
+
   def bye
     system("clear")
     [
