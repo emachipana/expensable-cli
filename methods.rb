@@ -65,8 +65,30 @@ module Methods
     password = valid_password(password)
     {email: email, password: password}
   end
+
+  def valid_phone(phone)
+    until phone.match?(/[+]\d{2}\s\d{9}\z/) || phone.length == 9 
+      puts "Required format: +51 111222333 or 111222333"
+      print "Phone: "
+      phone = gets.chomp
+    end
+    phone
+  end
+
+  def login_form_new_user
+    new_user = login_form # {email: email, password: password}
+    print "First name: "
+    first_name = gets.chomp
+    print "Last name: "
+    last_name = gets.chomp
+    print "Phone: "
+    phone = gets.chomp
+    phone = valid_phone(phone) unless phone.empty?
+    new_user.merge!({ first_name: first_name, last_name: last_name, phone: phone})
+  end
   
   def bye
+    system("clear")
     [
     "####################################",
     "#   Thanks for using Expensable    #",

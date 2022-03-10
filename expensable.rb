@@ -22,7 +22,7 @@ class Expensable
         when "login"
           login
         when "create_user"
-          puts "create here"
+          create_user
         when "exit"
           puts bye
         end
@@ -37,12 +37,16 @@ class Expensable
   def login
     login_data = login_form
     @user = Sessions.login(login_data)
+    puts "Welcome back #{user[:first_name]}"
     expenses_page
   end
 
-  # def create_user
-
-  # end
+  def create_user
+    data = login_form_new_user
+    @user = Sessions.signup(data)
+    puts "Welcome to Expensable #{user[:first_name]}"
+    expenses_page
+  end
 
   def expenses_page 
     @categories = Expenses.index(user[:token])
@@ -55,14 +59,14 @@ class Expensable
       item[:transaction_type] == "income"
     end
 
-    puts notes_table(expenses) # PODEMOS IMPRIMIR EXPENSES O INCOME POR EL PARAMETRO
+    puts notes_table(expenses, "Expenses") # PODEMOS IMPRIMIR EXPENSES O INCOME POR EL PARAMETRO
     puts print_menu(:menu_categories)
 
   end
 
-  def notes_table(table_data)
+  def notes_table(table_data, title)
     table = Terminal::Table.new
-    table.title = "Expenses\nDecember 2021"
+    table.title = "#{title}\nDecember 2021"
     table.headings = ['ID', 'Category', 'Total']
     table.rows = table_data.map do |category|
       suma = 0
