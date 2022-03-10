@@ -16,6 +16,13 @@ class Sessions
     JSON.parse(response.body, symbolize_names: true)
   end
 
+  def self.logout(token)
+    options = {
+      headers: { "Authorization": "Token token=#{token}" }
+    }
+    response = delete('/logout', options)
+  end
+
   def self.signup(data)
     options = {
       headers: { "Content-Type": "application/json" },

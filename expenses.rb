@@ -46,5 +46,6 @@ class Expenses
       body: data.to_json
     }
     response = patch("/categories/#{id}", options)
+    JSON.parse(response.body, symbolize_names: true) unless response.body.nil?
   end
 end

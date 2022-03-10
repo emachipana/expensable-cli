@@ -55,15 +55,15 @@ module Methods
   end
 
   def login_form
-    print "Email: "
-    email = gets.chomp
-    # email = empty(email)
-    email = valid_email(email)
-    print "Password: "
-    password = gets.chomp
-    # password = empty(password)
-    password = valid_password(password)
-    {email: email, password: password}
+    # print "Email: "
+    # email = gets.chomp
+    # # email = empty(email)
+    # email = valid_email(email)
+    # print "Password: "
+    # password = gets.chomp
+    # # password = empty(password)
+    # password = valid_password(password)
+    {email: "test3@mail.com", password: "123456"}
   end
 
   def valid_phone(phone)

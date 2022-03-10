@@ -8,7 +8,7 @@ require_relative 'sessions'
 require_relative 'expenses'
 
 class Expensable
-  attr_accessor :expenses, :income, :user, :categories, :date
+  attr_accessor :expenses, :income, :user, :categories, :date, :transaction_type
   
   include Methods
   def start
@@ -60,13 +60,15 @@ class Expensable
     @income = categories.select do |item|
       item[:transaction_type] == "income"
     end
-
-    puts notes_table(expenses, "Expenses") # PODEMOS IMPRIMIR EXPENSES O INCOME POR EL PARAMETRO
     
     action, id = ""
-    puts print_menu(:menu_categories)
-
+    # datos de la tabla por default
+    @actual_table_name = "Expenses"
+    @actual_table = expenses
     until action == "logout"
+      puts notes_table(@actual_table, @actual_table_name) # PODEMOS IMPRIMIR EXPENSES O INCOME POR EL PARAMETRO
+      puts print_menu(:menu_categories)
+      print "> "  
       action, id = gets.chomp.split
       case action 
       when "create" then create_category
@@ -74,12 +76,23 @@ class Expensable
       when "update" then update_category(id.to_i)
       when "delete" then delete_category(id.to_i)
       when "add-to" then p "add-to"
-      when "toggle" then p "toggle"
-      when "next" then p "next"
-      when "prev" then p "prev"
-      when "logout" then p "logout"
+      when "toggle" then toggle 
+      when "next" then next_month
+      when "prev" then prev_month
+      when "logout" then Sessions.logout(user[:token])
       else p "Escribe una opcion correcta"
       end
+    end
+  end
+
+  def toggle
+    # cambiamos de tabla
+    if @actual_table_name == "Expenses"
+      @actual_table_name = "Income"
+      @actual_table = income 
+    else
+      @actual_table_name = "Expenses"
+      @actual_table = expenses
     end
   end
 
@@ -87,44 +100,104 @@ class Expensable
     table = Terminal::Table.new
     table.title = "#{title}\n#{date}"
     table.headings = ['ID', 'Category', 'Total']
-    # SOLAMENTE VAMOS A SUMAR SI HACE MATCH CON LA FECHA 
+    # #table_data = table_data.select do |item|
+    #   item[:transactions].find do |value|
+    #     Date.parse(value[:date]).strftime("%B %Y") == date #unless item[:transactions].empty?
+    #   end
+    # #end
+    # imprimimos la tabla validada con la fecha
     table.rows = table_data.map do |category|
       suma = 0
-      category[:transactions].each { |item| suma += item[:amount]}
+      #sumamos :amount solo si coincide con la fecha
+      category[:transactions].each do |item|
+       suma += item[:amount] if Date.parse(item[:date]).strftime("%B %Y") == date #unless category[:transactions].empty?
+      end
       [category[:id], category[:name], suma]
     end
     table
   end
 
+  def next_month
+    date_t = Date.parse(date)
+    @date = date_t.next_month.strftime("%B %Y")
+  end
+
+  def prev_month
+    date_t = Date.parse(date)
+    @date = date_t.prev_month.strftime("%B %Y")
+  end
+
   def delete_category(id)
-    Expenses.destroy(user[:token], id) # ELIMINA EN EL API
+    Expenses.destroy(@user[:token], id) # ELIMINA EN EL API
     # DEBEMOS ELIMINAR EN LOCAL Y MOSTRAR LA TABLA
     @expenses.reject! { |expense| expense[:id] == id}
-    puts notes_table(expenses, "Expenses")
+    # puts notes_table(expenses, "Expenses")
+
+    variable = @categories.find do |category|
+      category[:id] == id
+    end
+
+    case variable[:transaction_type]
+    when "expense"
+      @expenses.reject! { |expense| expense[:id] == id}
+      @actual_table_name = "Expenses"
+      @actual_table = expenses
+      #puts notes_table(expenses, "Expenses")
+    when "income"
+      @income.reject! { |income| income[:id] == id}
+      @actual_table_name = "Income"
+      @actual_table = income
+      #puts notes_table(income, "Income")
+    end
   end
 
   def create_category
     data = { name: "New Expense3", transaction_type: "expense" }
+    print "Name: "
+    name = gets.chomp
+    print "Transaction Type: "
+    transaction_type = gets.chomp
+    data = { name: name, transaction_type: transaction_type }
     # ENVIAMOS EL KEY Y LA DATA
-    new_data = Expenses.create_expense(user[:token], data)
-    @expenses.push(new_data) 
-    puts notes_table(expenses, "Expenses")
+    new_data = Expenses.create_expense(@user[:token], data)
+    if transaction_type == "income"
+      @income.push(new_data) 
+      #puts notes_table(income, "Income")
+      @actual_table_name = "Income"
+      @actual_table = income
+    elsif transaction_type == "expense" 
+      @expenses.push(new_data)
+      #puts notes_table(expenses, "Expenses")
+      @actual_table_name = "Expenses"
+      @actual_table = expenses
+    end
   end
 
   def update_category(id)
     data = { name: "New Expense", transaction_type: "expense" }
-    Expenses.update(user[:token], id, data)
-  end
-
-  def next_month
-    @date = date.next_month.strftime("%B %Y")
-  end
-
-  def prev_month
-    @date = date.prev_month.strftime("%B %Y")
+    Expenses.update_category(@user[:token], id, data)
+    print "Name: "
+    name = gets.chomp
+    print "Transaction Type: "
+    transaction_type = gets.chomp
+    data = { name: name, transaction_type: transaction_type }
+    new_data = Expenses.update_category(@user[:token], id, data)
+    if transaction_type == "income"
+      @income.reject! { |income| income[:id] == id}
+      @income.push(new_data) 
+      @actual_table_name = "Income"
+      @actual_table = income
+    elsif transaction_type == "expense"
+      @expenses.reject! { |expense| expense[:id] == id} 
+      @expenses.push(new_data)
+      @actual_table_name = "Expenses"
+      @actual_table = expenses
+    end
+    # system("clear")
   end
 
 end
 
 app = Expensable.new
 app.start
+
