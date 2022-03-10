@@ -12,6 +12,7 @@ class Sessions
         body: login_data.to_json
       }
     response = post('/login',options)
+    raise HTTParty::ResponseError.new(response) unless response.success?
     JSON.parse(response.body, symbolize_names: true)
   end
 end
