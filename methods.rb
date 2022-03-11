@@ -7,7 +7,7 @@ module Methods
       "####################################"
     ]
   end
-  
+
   def print_menu(name_menu)
     options = {
       menu_login: "login | create_user | exit",
@@ -22,18 +22,18 @@ module Methods
     input = gets.chomp
     input = empty(input)
     until options.include?(input)
-        puts "Invalid Options!"
-        print "> "
-        input = gets.chomp
+      puts "Invalid Options!"
+      print "> "
+      input = gets.chomp
     end
     input
   end
 
   def empty(input)
     while input.empty?
-        puts "Cannot be blank"
-        print "> "
-        input = gets.chomp
+      puts "Cannot be blank"
+      print "> "
+      input = gets.chomp
     end
     input
   end
@@ -65,11 +65,11 @@ module Methods
     password = gets.chomp
     # password = empty(password)
     password = valid_password(password)
-    {email: email, password: password}
+    { email: email, password: password }
   end
 
   def valid_phone(phone)
-    until phone.match?(/[+]\d{2}\s\d{9}\z/) || phone.length == 9 
+    until phone.match?(/[+]\d{2}\s\d{9}\z/) || phone.length == 9
       puts "Required format: +51 111222333 or 111222333"
       print "Phone: "
       phone = gets.chomp
@@ -86,10 +86,10 @@ module Methods
     print "Phone: "
     phone = gets.chomp
     phone = valid_phone(phone) unless phone.empty?
-    new_user.merge!({ first_name: first_name, last_name: last_name, phone: phone})
+    new_user.merge!({ first_name: first_name, last_name: last_name, phone: phone })
   end
 
-  def form_transaction 
+  def form_transaction
     print "Amount: "
     amount = gets.chomp.to_i
     amount = valid_amount(amount)
@@ -98,7 +98,7 @@ module Methods
     print "Date: "
     date_tra = gets.chomp.split("-")
     date_tra = valid_date(date_tra)
-    {amount: amount, notes: notes, date: date_tra}
+    { amount: amount, notes: notes, date: date_tra }
   end
 
   def valid_amount(amount)
@@ -119,12 +119,31 @@ module Methods
     date_tra.join("-")
   end
 
+  def form_category
+    print "Name: "
+    name = gets.chomp
+    name = empty(name)
+    print "Transaction Type: "
+    transaction_type = gets.chomp
+    transaction_type = valid_transaction_type(transaction_type)
+    { name: name, transaction_type: transaction_type }
+  end
+
+  def valid_transaction_type(transaction_type)
+    until ["expense", "income"].include?(transaction_type)
+      puts "Only income or expense"
+      print "Transaction Type: "
+      transaction_type = gets.chomp
+    end
+    transaction_type
+  end
+
   def bye
     system("clear")
     [
-    "####################################",
-    "#   Thanks for using Expensable    #",
-    "####################################"
+      "####################################",
+      "#   Thanks for using Expensable    #",
+      "####################################"
     ]
   end
 end

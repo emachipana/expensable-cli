@@ -4,8 +4,8 @@ require "httparty"
 require "json"
 require "date"
 require_relative "methods"
-require_relative 'sessions'
-require_relative 'expenses'
+require_relative "sessions"
+require_relative "expenses"
 
 class Expensable
   attr_accessor :expenses, :income, :user, :categories, :date, :transaction_type
@@ -14,7 +14,7 @@ class Expensable
 
   def start
     @date = Date.today.strftime("%B %Y")
-    # Ya tengo mi start ahora debo hacer el loop del login 
+    # Ya tengo mi start ahora debo hacer el loop del login
     action = ""
     until action == "exit"
       begin
@@ -29,10 +29,9 @@ class Expensable
         when "exit"
           puts bye
         end
-      
       rescue HTTParty::ResponseError => e
         parsed_error = JSON.parse(e.message, symbolize_names: true)
-      puts parsed_error[:errors]
+        puts parsed_error[:errors]
       end
     end
   end
@@ -51,7 +50,7 @@ class Expensable
     expenses_page
   end
 
-  def expenses_page 
+  def expenses_page
     @categories = Expenses.index(user[:token])
 
     @expenses = categories.select do |item|
@@ -61,7 +60,7 @@ class Expensable
     @income = categories.select do |item|
       item[:transaction_type] == "income"
     end
-    
+
     action, id = ""
     # datos de la tabla por default
     @actual_table_name = "Expenses"
@@ -69,38 +68,42 @@ class Expensable
     until action == "logout"
       puts notes_table(@actual_table, @actual_table_name) # PODEMOS IMPRIMIR EXPENSES O INCOME POR EL PARAMETRO
       puts print_menu(:menu_categories)
-      print "> "  
+      print "> "
       action, id = gets.chomp.split
-      case action 
+      case action
       when "create" then create_category
-      when "show" then show(id.to_i)
-      when "update" then update_category(id.to_i)
-      when "delete" then delete_category(id.to_i)
-      when "add-to" then add_to(id.to_i)
-      when "toggle" then toggle 
+      when "show"
+        id.nil? ? (puts "Id required") : show(id.to_i)
+      when "update"
+        id.nil? ? (puts "Id required") : update_category(id.to_i)
+      when "delete"
+        id.nil? ? (puts "Id required") : delete_category(id.to_i)
+      when "add-to" 
+        id.nil? ? (puts "Id required") : add_to(id.to_i)
+      when "toggle" then toggle
       when "next" then next_month
       when "prev" then prev_month
       when "logout" then Sessions.logout(user[:token])
-      else p "Escribe una opcion correcta"
+      else puts "Invalid options!"
       end
     end
   end
- 
+
   def add_to(id_tran)
     data = form_transaction
     new_data = Expenses.add_transaction(id_tran, user[:token], data)
-    index = []
     data = @actual_table.select { |values| values[:id] == id_tran }
+    index = @actual_table.index(data[0])
     data[0][:transactions].push(new_data)
-    @actual_table.reject! { |value| value[:id] == id_tran}
-    @actual_table.unshift(data[0])
+    @actual_table.reject! { |value| value[:id] == id_tran }
+    @actual_table.insert(index, data[0])
   end
 
   def toggle
     # cambiamos de tabla
     if @actual_table_name == "Expenses"
       @actual_table_name = "Income"
-      @actual_table = income 
+      @actual_table = income
     else
       @actual_table_name = "Expenses"
       @actual_table = expenses
@@ -110,14 +113,14 @@ class Expensable
   def notes_table(table_data, title)
     table = Terminal::Table.new
     table.title = "#{title}\n#{date}"
-    table.headings = ['ID', 'Category', 'Total']
+    table.headings = ["ID", "Category", "Total"]
     table.rows = table_data.map do |category|
       suma = 0
-      #sumamos :amount solo si coincide con la fecha
+      # sumamos :amount solo si coincide con la fecha
       category[:transactions].each do |item|
-       suma += item[:amount] if Date.parse(item[:date]).strftime("%B %Y") == date #unless category[:transactions].empty?
+        suma += item[:amount] if Date.parse(item[:date]).strftime("%B %Y") == date
       end
-      [category[:id], category[:name], suma]
+      [category[:id], category[:name], "S/. #{suma}"]
     end
     table
   end
@@ -146,8 +149,10 @@ class Expensable
       action, id = gets.chomp.split
       case action
       when "add" then add(id_tran.to_i)
-      when "update" then update(id_tran.to_i, id.to_i) #pasar el id
-      when "delete" then delete(id_tran.to_i, id.to_i)
+      when "update"
+        id.nil? ? (puts "Id required") : update(id_tran.to_i, id.to_i) # pasar el id
+      when "delete"
+        id.nil? ? (puts "Id required") : delete(id_tran.to_i, id.to_i)
       when "next" then next_month
       when "prev" then prev_month
       when "back" then ""
@@ -165,98 +170,49 @@ class Expensable
   def update(id_tran, id)
     data = form_transaction
     new_data = Expenses.update_transaction(id_tran, id, user[:token], data)
-    @transactions.reject! { |transactions| transactions[:id] == id}
+    @transactions.reject! { |transactions| transactions[:id] == id }
     @transactions.push(new_data)
   end
 
   def delete(id_tran, id)
     Expenses.delete_transaction(id_tran, user[:token], id)
-    @transactions.reject! { |transactions| transactions[:id] == id}
+    @transactions.reject! { |transactions| transactions[:id] == id }
   end
 
   def table_show_id(table_data, title)
     table = Terminal::Table.new
     table.title = "#{title}\n#{date}"
-    table.headings = ['ID', 'Date', 'Amount', 'Notes']
+    table.headings = ["ID", "Date", "Amount", "Notes"]
     table_data = table_data.select do |value|
-      Date.parse(value[:date]).strftime("%B %Y") == date #unless item[:transactions].empty?
+      Date.parse(value[:date]).strftime("%B %Y") == date # unless item[:transactions].empty?
     end
     table.rows = table_data.map do |note|
       dates = Date.parse(note[:date]).strftime("%a, %b %d")
-      [note[:id], dates, note[:amount], note[:notes]]
+      [note[:id], dates, "S/. #{note[:amount]}", note[:notes]]
     end
     table
   end
 
   def delete_category(id)
-    Expenses.destroy(@user[:token], id) # ELIMINA EN EL API
+    Expenses.destroy(user[:token], id) # ELIMINA EN EL API
     # DEBEMOS ELIMINAR EN LOCAL Y MOSTRAR LA TABLA
-    @expenses.reject! { |expense| expense[:id] == id}
-    # puts notes_table(expenses, "Expenses")
-
-    variable = @categories.find do |category|
-      category[:id] == id
-    end
-
-    case variable[:transaction_type]
-    when "expense"
-      @expenses.reject! { |expense| expense[:id] == id}
-      @actual_table_name = "Expenses"
-      @actual_table = expenses
-      #puts notes_table(expenses, "Expenses")
-    when "income"
-      @income.reject! { |income| income[:id] == id}
-      @actual_table_name = "Income"
-      @actual_table = income
-      #puts notes_table(income, "Income")
-    end
+    @actual_table.reject! { |data| data[:id] == id }
   end
 
   def create_category
-    print "Name: "
-    name = gets.chomp
-    print "Transaction Type: "
-    transaction_type = gets.chomp
-    data = { name: name, transaction_type: transaction_type }
+    data = form_category
     # ENVIAMOS EL KEY Y LA DATA
-    new_data = Expenses.create_expense(@user[:token], data)
-    if transaction_type == "income"
-      @income.push(new_data) 
-      #puts notes_table(income, "Income")
-      @actual_table_name = "Income"
-      @actual_table = income
-    elsif transaction_type == "expense" 
-      @expenses.push(new_data)
-      #puts notes_table(expenses, "Expenses")
-      @actual_table_name = "Expenses"
-      @actual_table = expenses
-    end
+    new_data = Expenses.create_expense(user[:token], data)
+    @actual_table.push(new_data)
   end
 
   def update_category(id)
-    Expenses.update_category(@user[:token], id, data)
-    print "Name: "
-    name = gets.chomp
-    print "Transaction Type: "
-    transaction_type = gets.chomp
-    data = { name: name, transaction_type: transaction_type }
+    data = form_category
     new_data = Expenses.update_category(@user[:token], id, data)
-    if transaction_type == "income"
-      @income.reject! { |income| income[:id] == id}
-      @income.push(new_data) 
-      @actual_table_name = "Income"
-      @actual_table = income
-    elsif transaction_type == "expense"
-      @expenses.reject! { |expense| expense[:id] == id} 
-      @expenses.push(new_data)
-      @actual_table_name = "Expenses"
-      @actual_table = expenses
-    end
-    # system("clear")
+    @actual_table.reject! { |table| table[:id] == id }
+    @actual_table.push(new_data)
   end
-
 end
 
 app = Expensable.new
 app.start
-
