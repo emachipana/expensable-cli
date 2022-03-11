@@ -9,8 +9,9 @@ require_relative 'expenses'
 
 class Expensable
   attr_accessor :expenses, :income, :user, :categories, :date, :transaction_type
-  
+
   include Methods
+
   def start
     @date = Date.today.strftime("%B %Y")
     # Ya tengo mi start ahora debo hacer el loop del login 
@@ -72,10 +73,10 @@ class Expensable
       action, id = gets.chomp.split
       case action 
       when "create" then create_category
-      when "show" then p "show"
+      when "show" then show(id.to_i)
       when "update" then update_category(id.to_i)
       when "delete" then delete_category(id.to_i)
-      when "add-to" then p "add-to"
+      when "add-to" then add_to(id.to_i)
       when "toggle" then toggle 
       when "next" then next_month
       when "prev" then prev_month
@@ -83,6 +84,16 @@ class Expensable
       else p "Escribe una opcion correcta"
       end
     end
+  end
+ 
+  def add_to(id_tran)
+    data = form_transaction
+    new_data = Expenses.add_transaction(id_tran, user[:token], data)
+    index = []
+    data = @actual_table.select { |values| values[:id] == id_tran }
+    data[0][:transactions].push(new_data)
+    @actual_table.reject! { |value| value[:id] == id_tran}
+    @actual_table.unshift(data[0])
   end
 
   def toggle
@@ -100,12 +111,6 @@ class Expensable
     table = Terminal::Table.new
     table.title = "#{title}\n#{date}"
     table.headings = ['ID', 'Category', 'Total']
-    # #table_data = table_data.select do |item|
-    #   item[:transactions].find do |value|
-    #     Date.parse(value[:date]).strftime("%B %Y") == date #unless item[:transactions].empty?
-    #   end
-    # #end
-    # imprimimos la tabla validada con la fecha
     table.rows = table_data.map do |category|
       suma = 0
       #sumamos :amount solo si coincide con la fecha
@@ -125,6 +130,62 @@ class Expensable
   def prev_month
     date_t = Date.parse(date)
     @date = date_t.prev_month.strftime("%B %Y")
+  end
+
+  def show(id_tran)
+    @transactions = @actual_table.find do |item|
+      item[:id] == id_tran
+    end
+    name_transaction = @transactions[:name]
+    @transactions = @transactions[:transactions]
+    action, id = ""
+    until action == "back"
+      puts table_show_id(@transactions, name_transaction)
+      puts print_menu(:menu_transaction)
+      print "> "
+      action, id = gets.chomp.split
+      case action
+      when "add" then add(id_tran.to_i)
+      when "update" then update(id_tran.to_i, id.to_i) #pasar el id
+      when "delete" then delete(id_tran.to_i, id.to_i)
+      when "next" then next_month
+      when "prev" then prev_month
+      when "back" then ""
+      else puts "Invalid options!"
+      end
+    end
+  end
+
+  def add(id_tran)
+    data = form_transaction
+    new_data = Expenses.add_transaction(id_tran, user[:token], data)
+    @transactions.push(new_data)
+  end
+
+  def update(id_tran, id)
+    data = form_transaction
+    new_data = Expenses.update_transaction(id_tran, id, user[:token], data)
+    @transactions.reject! { |transactions| transactions[:id] == id}
+    @transactions.push(new_data)
+  end
+
+  def delete(id_tran, id)
+    Expenses.delete_transaction(id_tran, user[:token], id)
+    @transactions.reject! { |transactions| transactions[:id] == id}
+  end
+
+  def table_show_id(table_data, title)
+    table = Terminal::Table.new
+    table.title = "#{title}\n#{date}"
+    table.headings = ['ID', 'Date', 'Amount', 'Notes']
+    table_data = table_data.select do |value|
+      Date.parse(value[:date]).strftime("%B %Y") == date #unless item[:transactions].empty?
+    end
+    table.rows = table_data.map do |note|
+      dates = Date.parse(note[:date]).strftime("%a, %b %d")
+      [note[:id], dates, note[:amount], note[:notes]]
+    end
+    table
   end
 
   def delete_category(id)
@@ -152,7 +213,6 @@ class Expensable
   end
 
   def create_category
-    data = { name: "New Expense3", transaction_type: "expense" }
     print "Name: "
     name = gets.chomp
     print "Transaction Type: "
@@ -174,7 +234,6 @@ class Expensable
   end
 
   def update_category(id)
-    data = { name: "New Expense", transaction_type: "expense" }
     Expenses.update_category(@user[:token], id, data)
     print "Name: "
     name = gets.chomp

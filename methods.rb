@@ -1,3 +1,4 @@
+require "date"
 module Methods
   def welcome
     [
@@ -10,7 +11,8 @@ module Methods
   def print_menu(name_menu)
     options = {
       menu_login: "login | create_user | exit",
-      menu_categories: "create | show ID | update ID | delete ID\nadd-to ID | toggle | next | prev | logout" 
+      menu_categories: "create | show ID | update ID | delete ID\nadd-to ID | toggle | next | prev | logout",
+      menu_transaction: "add | update ID | delete ID\nnext | prev | back"
     }
     options[name_menu]
   end
@@ -55,15 +57,15 @@ module Methods
   end
 
   def login_form
-    # print "Email: "
-    # email = gets.chomp
-    # # email = empty(email)
-    # email = valid_email(email)
-    # print "Password: "
-    # password = gets.chomp
-    # # password = empty(password)
-    # password = valid_password(password)
-    {email: "test3@mail.com", password: "123456"}
+    print "Email: "
+    email = gets.chomp
+    # email = empty(email)
+    email = valid_email(email)
+    print "Password: "
+    password = gets.chomp
+    # password = empty(password)
+    password = valid_password(password)
+    {email: email, password: password}
   end
 
   def valid_phone(phone)
@@ -87,6 +89,36 @@ module Methods
     new_user.merge!({ first_name: first_name, last_name: last_name, phone: phone})
   end
 
+  def form_transaction 
+    print "Amount: "
+    amount = gets.chomp.to_i
+    amount = valid_amount(amount)
+    print "Notes: "
+    notes = gets.chomp
+    print "Date: "
+    date_tra = gets.chomp.split("-")
+    date_tra = valid_date(date_tra)
+    {amount: amount, notes: notes, date: date_tra}
+  end
+
+  def valid_amount(amount)
+    until amount.positive?
+      puts "Cannot be zero"
+      print "Amount: "
+      amount = gets.chomp.to_i
+    end
+    amount
+  end
+
+  def valid_date(date_tra)
+    until Date.valid_date?(date_tra[0].to_i, date_tra[1].to_i, date_tra[2].to_i)
+      puts "Required format: YYYY-MM-DD"
+      print "Date: "
+      date_tra = gets.chomp.split("-")
+    end
+    date_tra.join("-")
+  end
+
   def bye
     system("clear")
     [
@@ -96,4 +128,3 @@ module Methods
     ]
   end
 end
-
