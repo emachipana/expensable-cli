@@ -8,9 +8,12 @@ require_relative "sessions"
 require_relative "expenses"
 
 class Expensable
-  attr_accessor :expenses, :income, :user, :categories, :date, :transaction_type
+  attr_accessor :expenses, :income, :user, :categories, :date, :transaction_type, :transactions
 
   include Methods
+  # def initialize
+
+  # end
 
   def start
     @date = Date.today.strftime("%B %Y")
@@ -78,7 +81,7 @@ class Expensable
         id.nil? ? (puts "Id required") : update_category(id.to_i)
       when "delete"
         id.nil? ? (puts "Id required") : delete_category(id.to_i)
-      when "add-to" 
+      when "add-to"
         id.nil? ? (puts "Id required") : add_to(id.to_i)
       when "toggle" then toggle
       when "next" then next_month
@@ -197,6 +200,7 @@ class Expensable
     Expenses.destroy(user[:token], id) # ELIMINA EN EL API
     # DEBEMOS ELIMINAR EN LOCAL Y MOSTRAR LA TABLA
     @actual_table.reject! { |data| data[:id] == id }
+    # @actual_table
   end
 
   def create_category
